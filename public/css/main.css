@@ -1,0 +1,17 @@
+.header {
+    text-align: center;
+    border: black 3px solid;
+    border-radius: 10px;
+    background-color: silver;
+}
+
+.content {
+    text-align: center;
+    border: black 3px solid;
+    border-radius: 10px;
+    background-color: silver;
+}
+
+.input {
+    margin: 10px;
+}

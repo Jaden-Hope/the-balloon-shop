@@ -21,7 +21,7 @@ module.exports = (pool, validColors) => {
     function getInvalidColors () {
 
     }
-     
+
     function allColors () {
 
     }
