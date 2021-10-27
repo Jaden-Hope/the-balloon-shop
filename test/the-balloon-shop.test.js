@@ -3,74 +3,96 @@ let TheBalloonShop = require("../the-balloon-shop");
 const pg = require("pg");
 const Pool = pg.Pool;
 
-const connectionString = process.env.DATABASE_URL || 'postgresql://localhost:5432/my_balloon_tests';
+const connectionString = process.env.DATABASE_URL || 'postgresql://jaden:mypass@localhost:5432/my_balloon_tests';
 
 const pool = new Pool({
-    connectionString
+    connectionString,
+    ssl: {
+        rejectUnauthorized: false,
+    },
 });
 
 describe('The balloon function', function () {
 
 
     beforeEach(async function () {
-        // clean the tables before each test run
-        // await pool.query("delete from valid_colors;");
-        // add valid colors
-    });
-
-    it('should get the valid colors', async function () {
-
-        const theBalloonShop = TheBalloonShop(pool, ['Orange', 'Purple', 'Lime']);
-    
-        assert.equal(['Orange', 'Purple', 'Lime'], theBalloonShop.getValidColors());
+        await pool.query("delete from valid_colours;");
+        await pool.query("delete from invalid_colours;");
 
     });
 
-    it('should get invalid colors', async function () {
+    it('should get the valid colours', async function () {
 
         const theBalloonShop = TheBalloonShop(pool, ['Orange', 'Purple', 'Lime']);
+        await theBalloonShop.addValidColours();
 
-        await theBalloonShop.requestColor('Blue');
-        await theBalloonShop.requestColor('Red');
-        await theBalloonShop.requestColor('Green');
+        const valColours = await (await theBalloonShop.getValidColours()).rows;
+        const validColourList = [];
 
-        assert.equal(['Blue', 'Red', 'Green'], theBalloonShop.getInvalidColors());
+        for (let i = 0; i < valColours.length; i++) {
+            validColourList.push(valColours[i].colour_name);
+        }
+
+        assert.deepEqual(['Orange', 'Purple', 'Lime'], validColourList);
 
     });
 
-    it('should return count for a specific color', async function () {
+    it('should get Invalid colours', async function () {
+
         const theBalloonShop = TheBalloonShop(pool, ['Orange', 'Purple', 'Lime']);
+        await theBalloonShop.addValidColours();
 
-        await theBalloonShop.requestColor('Orange');
-        await theBalloonShop.requestColor('Orange');
-        await theBalloonShop.requestColor('Purple');
-        await theBalloonShop.requestColor('Orange');
-        await theBalloonShop.requestColor('Purple');
-        await theBalloonShop.requestColor('Orange');
-        await theBalloonShop.requestColor('Lime');
+        await theBalloonShop.requestColour('Blue');
+        await theBalloonShop.requestColour('Red');
+        await theBalloonShop.requestColour('Green');
 
-        assert.equal(4, await theBalloonShop.colorCount('Orange'));
-        assert.equal(1, theBalloonShop.colorCount('Lime'));
-        assert.equal(2, await theBalloonShop.colorCount('Purple'));
+        const invalColours = await (await theBalloonShop.getInvalidColours()).rows;
+        const invalidColourList = [];
+
+        for (let i = 0; i < invalColours.length; i++) {
+            invalidColourList.push(invalColours[i].colour_name);
+        }
+
+        assert.deepEqual(['Blue', 'Red', 'Green'], invalidColourList);
+
+    });
+
+    it('should return count for a specific colour', async function () {
+        const theBalloonShop = TheBalloonShop(pool, ['Orange', 'Purple', 'Lime']);
+        await theBalloonShop.addValidColours();
+
+        await theBalloonShop.requestColour('Orange');
+        await theBalloonShop.requestColour('Orange');
+        await theBalloonShop.requestColour('Purple');
+        await theBalloonShop.requestColour('Orange');
+        await theBalloonShop.requestColour('Purple');
+        await theBalloonShop.requestColour('Orange');
+        await theBalloonShop.requestColour('Lime');
+
+        assert.equal(4, await theBalloonShop.colourCount('Orange'));
+        assert.equal(1, theBalloonShop.colourCount('Lime'));
+        assert.equal(2, await theBalloonShop.colourCount('Purple'));
 
     })
 
-    it('should get all the colors - valid & invalid', async function () {
+    it('should get all the colours - valid & Invalid', async function () {
 
         const theBalloonShop = TheBalloonShop(pool, ['Orange', 'Purple', 'Lime']);
+        await theBalloonShop.addValidColours();
 
-        await theBalloonShop.requestColor('Blue')
-        await theBalloonShop.requestColor('Red')
+        await theBalloonShop.requestColour('Blue')
+        await theBalloonShop.requestColour('Red')
 
-        assert.equal(['Orange', 'Purple', 'Lime', 'Blue', 'Red'], await theBalloonShop.allColors());
+        assert.deepEqual(['Orange', 'Purple', 'Lime', 'Blue', 'Red'], await theBalloonShop.allColours());
 
     })
 
-    it('an invalid color should become a valid color after 5 requests', async function () {
+    it('an Invalid color should become a valid color after 5 requests', async function () {
 
         const theBalloonShop = TheBalloonShop(pool, []);
+        await theBalloonShop.addValidColours();
 
-        assert.equal([], await theBalloonShop.getValidColors());
+        assert.equal([], await theBalloonShop.getValidColours());
 
         await theBalloonShop.requestColor('Blue')
         await theBalloonShop.requestColor('Blue')
@@ -78,12 +100,12 @@ describe('The balloon function', function () {
         await theBalloonShop.requestColor('Blue')
         await theBalloonShop.requestColor('Blue')
 
-        assert.equal(['Blue', 'Red'], theBalloonShop.getInValidColors());
+        assert.equal(['Blue', 'Red'], await theBalloonShop.getInvalidColours());
 
         await theBalloonShop.requestColor('Blue')
 
-        assert.equal(['Blue'], await theBalloonShop.getValidColors());
-        assert.equal(['Red'], await theBalloonShop.getInValidColors());
+        assert.equal(['Blue'], await theBalloonShop.getValidColours());
+        assert.equal(['Red'], await theBalloonShop.getInvalidColours());
 
     });
 
